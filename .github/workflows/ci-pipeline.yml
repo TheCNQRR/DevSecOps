@@ -1,0 +1,52 @@
+name: DevSecOps Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  security-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: SAST - Semgrep Scan
+        run: |
+          pip install semgrep
+          semgrep scan --config auto --error
+
+      - name: SCA - Dependency Check
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/src:z \
+            -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
+            owasp/dependency-check-action:latest \
+            --project "MyProject" \
+            --scan /src \
+            --format "HTML" \
+            --disableAssembly
+
+      - name: DAST - OWASP ZAP Scan
+        run: |
+          # Сначала собираем приложение в фоне
+          ./gradlew bootRun &
+          # Ждем, пока приложение запустится (простая проверка порта)
+          npx wait-on http://localhost:8080
+          # Запускаем ZAP в Docker
+          docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+            -t http://localhost:8080 \
+            -g gen.conf \
+            -r report.html
+        continue-on-error: true
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            build/reports/dependency-check/
+            report.html
