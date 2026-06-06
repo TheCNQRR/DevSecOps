@@ -21,6 +21,11 @@ jobs:
 
       - name: SCA - Dependency Check
         run: |
+          # Используем флаг --noupdate, если база есть, ИЛИ 
+          # просто удаляем папку с данными перед каждым запуском.
+          # Чтобы не было конфликтов с монтированием, удаляем всё содержимое odc-data
+          rm -rf ${{ github.workspace }}/odc-data/*
+          
           docker run --rm \
             -v ${{ github.workspace }}:/src:z \
             -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
@@ -28,15 +33,14 @@ jobs:
             --project "MyProject" \
             --scan /src \
             --format "HTML" \
-            --disableAssembly
+            --disableAssembly \
+            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
+            --failOnCVSS 7
 
       - name: DAST - OWASP ZAP Scan
         run: |
-          # Сначала собираем приложение в фоне
           ./gradlew bootRun &
-          # Ждем, пока приложение запустится (простая проверка порта)
           npx wait-on http://localhost:8080
-          # Запускаем ZAP в Docker
           docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8080 \
             -g gen.conf \
