@@ -21,9 +21,6 @@ jobs:
 
       - name: SCA - Dependency Check
         run: |
-          # Используем флаг --noupdate, если база есть, ИЛИ 
-          # просто удаляем папку с данными перед каждым запуском.
-          # Чтобы не было конфликтов с монтированием, удаляем всё содержимое odc-data
           rm -rf ${{ github.workspace }}/odc-data/*
           
           docker run --rm \
@@ -39,6 +36,7 @@ jobs:
 
       - name: DAST - OWASP ZAP Scan
         run: |
+          chmod +x ./gradlew
           ./gradlew bootRun &
           npx wait-on http://localhost:8080
           docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
