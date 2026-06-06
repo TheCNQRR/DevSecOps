@@ -37,18 +37,22 @@ jobs:
             --scan /src \
             --format "HTML" \
             --disableAssembly \
+            --enableExperimental \
             --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --failOnCVSS 7
 
       - name: DAST - OWASP ZAP Scan
         run: |
           chmod +x ./gradlew
-          ./gradlew bootRun > server.log 2>&1 &
-          npx wait-on -t 60000 http://localhost:8081
+          JWT_SECRET=${{ secrets.JWT_SECRET }} ./gradlew :AuthService:bootRun > server.log 2>&1 &
+          
+          npx wait-on -t 60000 http://localhost:8081 || (echo "Сервер не поднялся на 8081, логи:" && cat server.log && exit 1)
+          
           docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-            -t http://localhost:8080 \
+            -t http://localhost:8081 \
             -g gen.conf \
             -r report.html || true
+          
           pkill -f bootRun
         continue-on-error: true
         env:
