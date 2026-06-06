@@ -14,6 +14,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Cache OWASP Data
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/odc-data
+          key: ${{ runner.os }}-odc-data-${{ hashFiles('**/build.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-odc-data-
+
       - name: SAST - Semgrep Scan
         run: |
           pip install semgrep
@@ -21,8 +29,6 @@ jobs:
 
       - name: SCA - Dependency Check
         run: |
-          rm -rf ${{ github.workspace }}/odc-data/*
-          
           docker run --rm \
             -v ${{ github.workspace }}:/src:z \
             -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
@@ -37,12 +43,13 @@ jobs:
       - name: DAST - OWASP ZAP Scan
         run: |
           chmod +x ./gradlew
-          ./gradlew bootRun &
-          npx wait-on http://localhost:8080
+          ./gradlew bootRun > server.log 2>&1 &
+          npx wait-on -t 60000 http://localhost:8080
           docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8080 \
             -g gen.conf \
-            -r report.html
+            -r report.html || true
+          pkill -f bootRun
         continue-on-error: true
 
       - name: Upload Reports
@@ -50,5 +57,5 @@ jobs:
         with:
           name: security-reports
           path: |
-            build/reports/dependency-check/
+            dependency-check-report.html
             report.html
