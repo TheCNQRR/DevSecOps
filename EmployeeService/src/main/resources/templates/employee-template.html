@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Profile Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #1c1c20;
+            --info-box-bg: #000000;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --accent: #b2b5dd;
+            --header-bg: #1c1c1c;
+            --border: #b2b5dd;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+            width: 100%%;
+            max-width: 750px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            background: var(--header-bg);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .avatar-container {
+            position: relative;
+            margin-bottom: 16px;
+            display: inline-block;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%%;
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 20px rgba(129, 140, 248, 0.3);
+            object-fit: cover;
+        }
+
+        .name-container {
+            margin: 0 0 8px 0;
+        }
+
+        .title-prefix {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .name {
+            color: var(--text-main);
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .badge-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .badge {
+            background: var(--info-box-bg);
+            color: var(--text-main);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }
+
+        .content {
+            padding: 35px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin: 0 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            font-weight: 700;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .info-box {
+            background-color: var(--info-box-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+
+        .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+
+        .code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+
+        .sub-section {
+            background: var(--bg-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px dashed var(--border);
+        }
+
+        .sub-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .security-table {
+            width: 100%%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .security-table td {
+            padding: 8px 10px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .security-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .security-table td:first-child {
+            font-weight: 600;
+            color: var(--text-muted);
+            width: 90px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <div class="avatar-container">
+            <img class="avatar" src="%s" alt="Large Avatar">
+        </div>
+        <div class="name-container">
+            <span class="title-prefix">%s</span>
+            <h2 class="name">%s %s</h2>
+        </div>
+        <div class="badge-container">
+            <span class="badge">NAT: %s</span>
+            <span class="badge">%s</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="section">
+            <div class="section-title">Primary Identification</div>
+            <div class="grid-2">
+                <div class="info-box full-width">
+                    <div class="label">Employee UUID</div>
+                    <div class="value code">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">ID Document Type</div>
+                    <div class="value">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">ID Document Value</div>
+                    <div class="value code">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Date of Birth</div>
+                    <div class="value">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Age (DOB)</div>
+                    <div class="value">%d years old</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Registration Date</div>
+                    <div class="value">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Registration Age</div>
+                    <div class="value">%d years</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Contact & Location Details</div>
+            <div class="grid-2">
+                <div class="info-box full-width">
+                    <div class="label">Email Address</div>
+                    <div class="value" style="color: var(--accent); font-weight: 600;">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Phone Number</div>
+                    <div class="value">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Cell Number</div>
+                    <div class="value">%s</div>
+                </div>
+
+                <div class="info-box full-width">
+                    <div class="label">Full Address</div>
+                    <div class="value" style="margin-bottom: 8px;">
+                        № %d %s, %s, %s, %s, %s
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="sub-section">
+                            <div class="sub-title">Coordinates</div>
+                            <div class="value code" style="font-size: 12px;">
+                                Lat: %s<br>Lng: %s
+                            </div>
+                        </div>
+                        <div class="sub-section">
+                            <div class="sub-title">Timezone</div>
+                            <div class="value" style="font-size: 12px; line-height: 1.4;">
+                                <strong style="color: var(--accent);">Offset:</strong> %s<br>
+                                <span style="color: var(--text-muted);">%s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Security & Account Access</div>
+            <div class="grid-2">
+                <div class="info-box">
+                    <div class="label">Account UUID</div>
+                    <div class="value code" style="font-size: 11px;">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Username</div>
+                    <div class="value code" style="font-weight: bold; color: var(--accent);">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Password (Plain)</div>
+                    <div class="value code">%s</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Salt</div>
+                    <div class="value code">%s</div>
+                </div>
+
+                <div class="info-box full-width">
+                    <div class="label">Cryptographic Hashes</div>
+                    <table class="security-table">
+                        <tr>
+                            <td>MD5</td>
+                            <td class="code">%s</td>
+                        </tr>
+                        <tr>
+                            <td>SHA-1</td>
+                            <td class="code">%s</td>
+                        </tr>
+                        <tr>
+                            <td>SHA-256</td>
+                            <td class="code">%s</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

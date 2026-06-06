@@ -1,0 +1,5 @@
+rootProject.name = 'Adv-java-alt-Checkpoint_3'
+
+include 'AuthService'
+include 'JwtService'
+include 'EmployeeService'
