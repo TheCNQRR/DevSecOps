@@ -58,14 +58,17 @@ jobs:
       - name: DAST - OWASP ZAP Scan
         run: |
           chmod +x ./gradlew
-          export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/db
-          export SPRING_DATASOURCE_USERNAME=user
-          export SPRING_DATASOURCE_PASSWORD=password
+          ./gradlew :AuthService:bootRun > server.log 2>&1 &
           
-          JWT_SECRET=${{ secrets.JWT_SECRET }} ./gradlew :AuthService:bootRun > server.log 2>&1 &
+          echo "Ожидание запуска приложения..."
+          sleep 30
           
-          npx wait-on -t 60000 http://localhost:8081 || (echo "Сервер не поднялся, логи:" && cat server.log && exit 1)
-          
+          if ! pgrep -f bootRun > /dev/null; then
+            echo "Приложение упало при старте! Логи:"
+            cat server.log
+            exit 1
+          fi
+
           docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8081 \
             -g gen.conf \
