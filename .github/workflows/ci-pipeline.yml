@@ -5,6 +5,20 @@ on: [push, pull_request]
 jobs:
   security-analysis:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -44,9 +58,13 @@ jobs:
       - name: DAST - OWASP ZAP Scan
         run: |
           chmod +x ./gradlew
+          export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/db
+          export SPRING_DATASOURCE_USERNAME=user
+          export SPRING_DATASOURCE_PASSWORD=password
+          
           JWT_SECRET=${{ secrets.JWT_SECRET }} ./gradlew :AuthService:bootRun > server.log 2>&1 &
           
-          npx wait-on -t 60000 http://localhost:8081 || (echo "Сервер не поднялся на 8081, логи:" && cat server.log && exit 1)
+          npx wait-on -t 60000 http://localhost:8081 || (echo "Сервер не поднялся, логи:" && cat server.log && exit 1)
           
           docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8081 \
@@ -54,7 +72,6 @@ jobs:
             -r report.html || true
           
           pkill -f bootRun
-        continue-on-error: true
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
