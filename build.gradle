@@ -11,9 +11,4 @@ allprojects {
     repositories {
         mavenCentral()
     }
-
-    ext {
-        set('tomcat.version', '11.0.22')
-        set('postgresql.version', '42.7.11')
-    }
 }
