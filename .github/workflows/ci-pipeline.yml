@@ -55,36 +55,77 @@ jobs:
             --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --failOnCVSS 7
 
-      - name: DAST - OWASP ZAP Scan
+      - name: DAST - OWASP ZAP Scan (Auth & Employee Services)
         run: |
           chmod +x ./gradlew
-          ./gradlew :AuthService:bootRun > server.log 2>&1 &
           
-          echo "Ожидание запуска приложения на порту 8081..."
+          echo "Запуск встроенного брокера Kafka..."
+          docker run -d --name kafka-dast --network="host" \
+            -e KAFKA_ENABLE_KRAFT=yes \
+            -e KAFKA_CFG_PROCESS_ROLES=broker,controller \
+            -e KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093 \
+            -e KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+            -e KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+            -e KAFKA_CFG_BROKER_ID=1 \
+            -e KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+            -e KAFKA_ALLOW_PLAINTEXT_LISTENER=yes \
+            bitnami/kafka:3.4
           
-          TIMEOUT=60
-          while ! nc -z localhost 8081; do   
-            sleep 2
-            TIMEOUT=$((TIMEOUT - 2))
+          echo "Создание базы данных 'employee' в Postgres..."
+          docker run --net="host" --rm -e PGPASSWORD=postgres postgres:15 \
+            psql -h localhost -U postgres -c "CREATE DATABASE employee;" || true
+
+          echo "Запуск AuthService на порту 8081..."
+          ./gradlew :AuthService:bootRun > auth-server.log 2>&1 &
+          
+          echo "Запуск EmployeeService на порту 8082..."
+          ./gradlew :EmployeeService:bootRun > employee-server.log 2>&1 &
+          
+          echo "Ожидание готовности обоих сервисов..."
+          TIMEOUT=90
+          while ! nc -z localhost 8081 || ! nc -z localhost 8082; do   
+            sleep 5
+            TIMEOUT=$((TIMEOUT - 5))
             if [ $TIMEOUT -le 0 ]; then
-              echo "Приложение не запустилось за отведенное время! Логи запуска:"
-              cat server.log
+              echo "Один из сервисов не смог запуститься! Выводим логи для отладки:"
+              echo "=== ЛОГИ AUTH SERVICE ==="
+              cat auth-server.log | tail -n 50
+              echo "=== ЛОГИ EMPLOYEE SERVICE ==="
+              cat employee-server.log | tail -n 50
               exit 1
             fi
           done
           
-          echo "Приложение успешно запущено и слушает порт 8081!"
-          
+          echo "Оба сервиса успешно запущены!"
           chmod 777 $(pwd)
 
+          echo "Запуск DAST для AuthService (8081)..."
           docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8081 \
-            -g gen.conf \
-            -r report.html || true
+            -g gen-auth.conf \
+            -r report-auth.html || true
+
+          echo "Запуск DAST для EmployeeService (8082)..."
+          docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+            -t http://localhost:8082 \
+            -g gen-employee.conf \
+            -r report-employee.html || true
           
+          echo "Остановка сервисов и контейнеров..."
           pkill -f bootRun
+          docker stop kafka-dast && docker rm kafka-dast
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            dependency-check-report.html
+            report-auth.html
+            report-employee.html
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4
