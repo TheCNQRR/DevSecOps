@@ -55,42 +55,50 @@ jobs:
             --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --failOnCVSS 7
 
-      - name: DAST - OWASP ZAP Scan (Auth & Employee Services)
+      - name: Start services (Kafka, Postgres DB employee)
         run: |
           chmod +x ./gradlew
-        
+          
           echo "Запуск встроенного брокера Kafka..."
           docker run -d --name kafka-dast --network="host" apache/kafka:latest
-        
+          
           echo "Создание базы данных 'employee' в Postgres..."
           docker run --net="host" --rm -e PGPASSWORD=postgres postgres:15 \
-          psql -h localhost -U postgres -c "CREATE DATABASE employee;" || true
-        
+            psql -h localhost -U postgres -c "CREATE DATABASE employee;" || true
+
+      - name: Run AuthService
+        run: |
           echo "Запуск AuthService на порту 8081..."
           ./gradlew :AuthService:bootRun > auth-server.log 2>&1 &
-        
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Run EmployeeService
+        run: |
           echo "Запуск EmployeeService на порту 8082..."
           ./gradlew :EmployeeService:bootRun > employee-server.log 2>&1 &
-        
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Wait for services to be ready
+        run: |
           echo "Ожидание готовности обоих сервисов..."
           TIMEOUT=90
-          while ! nc -z localhost 8081 || ! nc -z localhost 8082; do
-          sleep 5
-          TIMEOUT=$((TIMEOUT - 5))
-          if [ $TIMEOUT -le 0 ]; then
-          echo "Один из сервисов не смог запуститься! Выводим логи для отладки:"
-          echo "=== ЛОГИ AUTH SERVICE ==="
-          cat auth-server.log | tail -n 50
-          echo "=== ЛОГИ EMPLOYEE SERVICE ==="
-          cat employee-server.log | tail -n 50
-          exit 1
-          fi
+          while ! nc -z localhost 8081 || ! nc -z localhost 8082; do   
+            sleep 5
+            TIMEOUT=$((TIMEOUT - 5))
+            if [ $TIMEOUT -le 0 ]; then
+              echo "Один из сервисов не смог запуститься! Выводим логи для отладки:"
+              echo "=== ЛОГИ AUTH SERVICE ==="
+              cat auth-server.log | tail -n 50
+              echo "=== ЛОГИ EMPLOYEE SERVICE ==="
+              cat employee-server.log | tail -n 50
+              exit 1
+            fi
           done
-        
+          
           echo "Оба сервиса успешно запущены!"
-        
           sleep 10
-        
           chmod 777 $(pwd)
 
       - name: Register test user and obtain JWT token
@@ -140,10 +148,8 @@ jobs:
                 -config replacer.full_list(0).replacement='Bearer ${{ env.TOKEN }}'" || true
           
           echo "Остановка сервисов и контейнеров..."
-          pkill -f bootRun
-          docker stop kafka-dast && docker rm kafka-dast
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          pkill -f bootRun || true
+          docker stop kafka-dast && docker rm kafka-dast || true
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4
