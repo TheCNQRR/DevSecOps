@@ -21,6 +21,11 @@ public class EmployeeController {
     private final EmployeeService employeeService;
     private final EmployeeHtmlRenderer employeeHtmlRenderer;
 
+    @GetMapping(value = "/test-dast", produces = MediaType.TEXT_HTML_VALUE)
+    public String testDast() {
+        return "<html><body><h1>Auth Service Работает</h1></body></html>";
+    }
+
     @PostMapping
     @RequiredRole({"ADMIN"})
     public ResponseEntity<EmployeeResponse> createEmployee(@RequestBody CreateEmployeeRequest request) {

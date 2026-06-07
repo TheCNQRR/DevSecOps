@@ -92,7 +92,7 @@ jobs:
 
           echo "Запуск DAST для AuthService (8081)..."
           docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-            -t http://localhost:8081 \
+            -t http://localhost:8081/test-dast \
             -g gen-auth.conf \
             -r report-auth.html || true
 
@@ -116,11 +116,3 @@ jobs:
             dependency-check-report.html
             report-auth.html
             report-employee.html
-
-      - name: Upload Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-reports
-          path: |
-            dependency-check-report.html
-            report.html
