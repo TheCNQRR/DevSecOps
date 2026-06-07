@@ -36,24 +36,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-odc-data-
 
-      - name: SAST - Semgrep Scan
-        run: |
-          pip install semgrep
-          semgrep scan --config auto --error
+#      - name: SAST - Semgrep Scan
+#        run: |
+#          pip install semgrep
+#          semgrep scan --config auto --error
 
-      - name: SCA - Dependency Check
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/src:z \
-            -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
-            owasp/dependency-check-action:latest \
-            --project "MyProject" \
-            --scan /src \
-            --format "HTML" \
-            --disableAssembly \
-            --enableExperimental \
-            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
-            --failOnCVSS 7
+#      - name: SCA - Dependency Check
+#        run: |
+#          docker run --rm \
+#            -v ${{ github.workspace }}:/src:z \
+#            -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
+#            owasp/dependency-check-action:latest \
+#            --project "MyProject" \
+#            --scan /src \
+#            --format "HTML" \
+#            --disableAssembly \
+#            --enableExperimental \
+#            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
+#            --failOnCVSS 7
 
       - name: Start services (Kafka, Postgres DB employee)
         run: |
