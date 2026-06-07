@@ -12,3 +12,15 @@ allprojects {
         mavenCentral()
     }
 }
+
+subprojects {
+    plugins.withType(JavaPlugin) {
+        dependencies {
+            constraints {
+                implementation('org.apache.tomcat.embed:tomcat-embed-core:11.0.22').because('Fixes High/Critical CVEs found by Snyk')
+                implementation('org.apache.tomcat.embed:tomcat-embed-websocket:11.0.22').because('Fixes High/Critical CVEs found by Snyk')
+                implementation('org.postgresql:postgresql:42.7.11').because('Fixes High DoS vulnerability found by Snyk')
+            }
+        }
+    }
+}
