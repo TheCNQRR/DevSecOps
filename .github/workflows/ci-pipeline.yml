@@ -42,19 +42,12 @@ jobs:
           semgrep scan --config auto
         continue-on-error: true
 
-      - name: SCA - Dependency Check
+      - name: SCA - Dependency Check (Gradle Plugin)
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/src:z \
-            -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
-            owasp/dependency-check-action:latest \
-            --project "MyProject" \
-            --scan /src \
-            --format "HTML" \
-            --disableAssembly \
-            --enableExperimental \
-            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
-            --failOnCVSS 7
+          chmod +x ./gradlew
+          ./gradlew dependencyCheckAggregate
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
