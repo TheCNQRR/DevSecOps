@@ -43,18 +43,7 @@ jobs:
         continue-on-error: true
 
       - name: SCA - Dependency Check
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/src:z \
-            -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
-            owasp/dependency-check-action:latest \
-            --project "MyProject" \
-            --scan /src \
-            --format "HTML" \
-            --disableAssembly \
-            --enableExperimental \
-            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
-            --failOnCVSS 7
+        run: ./gradlew dependencyCheckAnalyze --continue
         continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
