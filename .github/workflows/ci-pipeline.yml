@@ -42,14 +42,19 @@ jobs:
           semgrep scan --config auto
         continue-on-error: true
 
-      - name: SCA - Trivy Scan (Dependencies)
+      - name: SCA - Dependency Check
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.58.2/trivy_0.58.2_Linux-64bit.deb
-          sudo dpkg -i trivy_0.58.2_Linux-64bit.deb
-            
-          trivy fs --scanners vuln --severity CRITICAL,HIGH --format html -o dependency-check-report.html .
+          docker run --rm \
+            -v ${{ github.workspace }}:/src:z \
+            -v ${{ github.workspace }}/odc-data:/usr/share/dependency-check/data:z \
+            owasp/dependency-check-action:latest \
+            --project "MyProject" \
+            --scan /src \
+            --format "HTML" \
+            --disableAssembly \
+            --enableExperimental \
+            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
+            --failOnCVSS 7
         continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
