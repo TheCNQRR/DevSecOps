@@ -72,6 +72,7 @@ jobs:
           ./gradlew :AuthService:bootRun > auth-server.log 2>&1 &
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
 
       - name: Run EmployeeService
         run: |
@@ -79,6 +80,7 @@ jobs:
           ./gradlew :EmployeeService:bootRun > employee-server.log 2>&1 &
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
 
       - name: Wait for services to be ready
         run: |
