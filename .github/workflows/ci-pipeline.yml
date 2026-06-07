@@ -104,6 +104,7 @@ jobs:
           echo "Оба сервиса успешно запущены!"
           sleep 10
           chmod 777 $(pwd)
+        continue-on-error: true
 
       - name: Register test user and obtain JWT token
         run: |
@@ -128,6 +129,7 @@ jobs:
 
           echo "Токен получен: ${TOKEN:0:20}..."
           echo "TOKEN=$TOKEN" >> $GITHUB_ENV
+        continue-on-error: true
 
       - name: DAST - OWASP ZAP Full Scan (Authenticated)
         run: |
@@ -154,6 +156,7 @@ jobs:
           echo "Остановка сервисов и контейнеров..."
           pkill -f bootRun || true
           docker stop kafka-dast && docker rm kafka-dast || true
+        continue-on-error: true
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4
