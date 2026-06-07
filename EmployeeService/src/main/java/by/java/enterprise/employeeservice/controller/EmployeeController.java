@@ -22,8 +22,13 @@ public class EmployeeController {
     private final EmployeeHtmlRenderer employeeHtmlRenderer;
 
     @GetMapping(value = "/test-dast", produces = MediaType.TEXT_HTML_VALUE)
-    public String testDast() {
-        return "<html><body><h1>Auth Service Работает</h1></body></html>";
+    public ResponseEntity<String> testDast(@RequestParam(required = false) String msg) {
+        if (msg != null && (msg.contains("<script>") || msg.contains("\""))) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("<html><body><h1>Runtime Exception</h1><p>Stacktrace: java.lang.NullPointerException at controller.EmployeeController(EmployeeController.java:23)</p></body></html>");
+        }
+        return ResponseEntity.status(HttpStatus.OK)
+                .body("<html><body><h1>Employee Service Работает</h1><p>Сообщение: " + msg + "</p></body></html>");
     }
 
     @PostMapping

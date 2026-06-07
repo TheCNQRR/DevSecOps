@@ -20,8 +20,14 @@ public class AuthController {
     private final AuthService authService;
 
     @GetMapping(value = "/test-dast", produces = MediaType.TEXT_HTML_VALUE)
-    public String testDast() {
-        return "<html><body><h1>Auth Service Работает</h1></body></html>";
+    public ResponseEntity<String> testDast(@RequestParam(required = false) String param) {
+        if (param != null && (param.contains("'") || param.contains("select"))) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("<html><body><h1>Internal Server Error</h1><p>SQL syntax error near: " + param + "</p></body></html>");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body("<html><body><h1>Auth Service Работает</h1><p>Результат поиска для: " + param + "</p></body></html>");
     }
 
     @PostMapping("/register")

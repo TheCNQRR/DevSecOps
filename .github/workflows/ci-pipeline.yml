@@ -131,7 +131,7 @@ jobs:
         run: |
           echo "Запуск ZAP Full Scan для AuthService (порт 8081)..."
           docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-            -t http://localhost:8081 \
+            -t http://localhost:8081/api/auth/test-dast?param=test \
             -r report-auth-full.html \
             -z "-config replacer.full_list(0).description=auth \
                 -config replacer.full_list(0).enabled=true \
@@ -141,7 +141,7 @@ jobs:
 
           echo "Запуск ZAP Full Scan для EmployeeService (порт 8082)..."
           docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-            -t http://localhost:8082 \
+            -t http://localhost:8082/api/employee/test-dast?msg=hello \
             -r report-employee-full.html \
             -z "-config replacer.full_list(0).description=auth \
                 -config replacer.full_list(0).enabled=true \
