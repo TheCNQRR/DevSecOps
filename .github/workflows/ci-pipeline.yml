@@ -49,11 +49,12 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --all-sub-projects --severity-threshold=high --json-file-output=snyk.json
-            - name: Generate Snyk HTML Report
-              run: |
-                npm install -g snyk-to-html
-                npx snyk-to-html -i snyk.json -o snyk-report.html
-              continue-on-error: true
+
+      - name: Generate Snyk HTML Report
+        run: |
+          npm install -g snyk-to-html
+          npx snyk-to-html -i snyk.json -o snyk-report.html
+        continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
         run: |
