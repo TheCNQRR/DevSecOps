@@ -11,16 +11,9 @@ allprojects {
     repositories {
         mavenCentral()
     }
-}
 
-subprojects {
-    plugins.withType(JavaPlugin) {
-        configurations.all {
-            resolutionStrategy {
-                force 'org.apache.tomcat.embed:tomcat-embed-core:11.0.22'
-                force 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.22'
-                force 'org.postgresql:postgresql:42.7.11'
-            }
-        }
+    ext {
+        set('tomcat.version', '11.0.22')
+        set('postgresql.version', '42.7.11')
     }
 }
