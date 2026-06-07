@@ -55,7 +55,7 @@ jobs:
             --enableExperimental \
             --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --failOnCVSS 7
-          continue-on-error: true
+        continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
         run: |
