@@ -58,49 +58,86 @@ jobs:
       - name: DAST - OWASP ZAP Scan (Auth & Employee Services)
         run: |
           chmod +x ./gradlew
-          
+        
           echo "Запуск встроенного брокера Kafka..."
           docker run -d --name kafka-dast --network="host" apache/kafka:latest
-          
+        
           echo "Создание базы данных 'employee' в Postgres..."
           docker run --net="host" --rm -e PGPASSWORD=postgres postgres:15 \
-            psql -h localhost -U postgres -c "CREATE DATABASE employee;" || true
-
+          psql -h localhost -U postgres -c "CREATE DATABASE employee;" || true
+        
           echo "Запуск AuthService на порту 8081..."
           ./gradlew :AuthService:bootRun > auth-server.log 2>&1 &
-          
+        
           echo "Запуск EmployeeService на порту 8082..."
           ./gradlew :EmployeeService:bootRun > employee-server.log 2>&1 &
-          
+        
           echo "Ожидание готовности обоих сервисов..."
           TIMEOUT=90
-          while ! nc -z localhost 8081 || ! nc -z localhost 8082; do   
-            sleep 5
-            TIMEOUT=$((TIMEOUT - 5))
-            if [ $TIMEOUT -le 0 ]; then
-              echo "Один из сервисов не смог запуститься! Выводим логи для отладки:"
-              echo "=== ЛОГИ AUTH SERVICE ==="
-              cat auth-server.log | tail -n 50
-              echo "=== ЛОГИ EMPLOYEE SERVICE ==="
-              cat employee-server.log | tail -n 50
-              exit 1
-            fi
+          while ! nc -z localhost 8081 || ! nc -z localhost 8082; do
+          sleep 5
+          TIMEOUT=$((TIMEOUT - 5))
+          if [ $TIMEOUT -le 0 ]; then
+          echo "Один из сервисов не смог запуститься! Выводим логи для отладки:"
+          echo "=== ЛОГИ AUTH SERVICE ==="
+          cat auth-server.log | tail -n 50
+          echo "=== ЛОГИ EMPLOYEE SERVICE ==="
+          cat employee-server.log | tail -n 50
+          exit 1
+          fi
           done
-          
+        
           echo "Оба сервиса успешно запущены!"
+        
+          sleep 10
+        
           chmod 777 $(pwd)
 
-          echo "Запуск DAST для AuthService (8081)..."
-          docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-            -t http://localhost:8081/test-dast \
-            -g gen-auth.conf \
-            -r report-auth.html || true
+      - name: Register test user and obtain JWT token
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
 
-          echo "Запуск DAST для EmployeeService (8082)..."
-          docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+          echo "Регистрация zap_scanner..."
+          curl -X POST http://localhost:8081/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"username":"zap_scanner","password":"ZapPass123!","role":"ADMIN"}' || true
+
+          LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8081/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"zap_scanner","password":"ZapPass123!"}')
+
+          TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
+
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Не удалось получить JWT токен"
+            echo "Ответ сервера: $LOGIN_RESPONSE"
+            exit 1
+          fi
+
+          echo "Токен получен: ${TOKEN:0:20}..."
+          echo "TOKEN=$TOKEN" >> $GITHUB_ENV
+
+      - name: DAST - OWASP ZAP Full Scan (Authenticated)
+        run: |
+          echo "Запуск ZAP Full Scan для AuthService (порт 8081)..."
+          docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+            -t http://localhost:8081 \
+            -r report-auth-full.html \
+            -z "-config replacer.full_list(0).description=auth \
+                -config replacer.full_list(0).enabled=true \
+                -config replacer.full_list(0).matchtype=REQ_HEADER \
+                -config replacer.full_list(0).matchstr=Authorization \
+                -config replacer.full_list(0).replacement='Bearer ${{ env.TOKEN }}'" || true
+
+          echo "Запуск ZAP Full Scan для EmployeeService (порт 8082)..."
+          docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
             -t http://localhost:8082 \
-            -g gen-employee.conf \
-            -r report-employee.html || true
+            -r report-employee-full.html \
+            -z "-config replacer.full_list(0).description=auth \
+                -config replacer.full_list(0).enabled=true \
+                -config replacer.full_list(0).matchtype=REQ_HEADER \
+                -config replacer.full_list(0).matchstr=Authorization \
+                -config replacer.full_list(0).replacement='Bearer ${{ env.TOKEN }}'" || true
           
           echo "Остановка сервисов и контейнеров..."
           pkill -f bootRun
