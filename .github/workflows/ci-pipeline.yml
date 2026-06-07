@@ -9,9 +9,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: db
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
+          POSTGRES_DB: auth
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
@@ -60,14 +60,20 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :AuthService:bootRun > server.log 2>&1 &
           
-          echo "Ожидание запуска приложения..."
-          sleep 30
+          echo "Ожидание запуска приложения на порту 8081..."
           
-          if ! pgrep -f bootRun > /dev/null; then
-            echo "Приложение упало при старте! Логи:"
-            cat server.log
-            exit 1
-          fi
+          TIMEOUT=60
+          while ! nc -z localhost 8081; do   
+            sleep 2
+            TIMEOUT=$((TIMEOUT - 2))
+            if [ $TIMEOUT -le 0 ]; then
+              echo "Приложение не запустилось за отведенное время! Логи запуска:"
+              cat server.log
+              exit 1
+            fi
+          done
+          
+          echo "Приложение успешно запущено и слушает порт 8081!"
 
           docker run --network="host" -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8081 \
