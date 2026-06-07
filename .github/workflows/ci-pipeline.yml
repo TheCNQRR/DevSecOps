@@ -42,13 +42,18 @@ jobs:
           semgrep scan --config auto
         continue-on-error: true
 
-      - name: SCA - Dependency Check (Gradle Plugin)
-        run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAggregate
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      - name: SCA - Snyk Open Source Analysis
+        uses: snyk/actions/gradle@master
         continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-sub-projects --severity-threshold=high --json-file-output=snyk.json
+            - name: Generate Snyk HTML Report
+              run: |
+                npm install -g snyk-to-html
+                npx snyk-to-html -i snyk.json -o snyk-report.html
+              continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
         run: |
