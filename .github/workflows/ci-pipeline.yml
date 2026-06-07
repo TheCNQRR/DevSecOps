@@ -42,10 +42,14 @@ jobs:
           semgrep scan --config auto
         continue-on-error: true
 
-      - name: SCA - Dependency Check
+      - name: SCA - Trivy Scan (Dependencies)
         run: |
-          chmod +x ./gradlew
-          ./gradlew dependencyCheckAnalyze --continue
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.58.2/trivy_0.58.2_Linux-64bit.deb
+          sudo dpkg -i trivy_0.58.2_Linux-64bit.deb
+            
+          trivy fs --scanners vuln --severity CRITICAL,HIGH --format html -o dependency-check-report.html .
         continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
