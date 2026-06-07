@@ -28,14 +28,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Cache OWASP Data
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/odc-data
-          key: ${{ runner.os }}-odc-data-${{ hashFiles('**/build.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-odc-data-
-
       - name: SAST - Semgrep Scan
         run: |
           pip install semgrep
