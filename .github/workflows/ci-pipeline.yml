@@ -56,7 +56,7 @@ jobs:
         run: |
           chmod +x ./gradlew
           
-          echo "Запуск встроенного брокера Kafka..."
+          echo "Запуск Kafka..."
           docker run -d --name kafka-dast --network="host" apache/kafka:latest
           
           echo "Создание базы данных 'employee' в Postgres..."
@@ -87,10 +87,10 @@ jobs:
             sleep 5
             TIMEOUT=$((TIMEOUT - 5))
             if [ $TIMEOUT -le 0 ]; then
-              echo "Один из сервисов не смог запуститься! Выводим логи для отладки:"
-              echo "=== ЛОГИ AUTH SERVICE ==="
+              echo "Один из сервисов не смог запуститься!"
+              echo "ЛОГИ AUTH SERVICE"
               cat auth-server.log | tail -n 50
-              echo "=== ЛОГИ EMPLOYEE SERVICE ==="
+              echo "ЛОГИ EMPLOYEE SERVICE"
               cat employee-server.log | tail -n 50
               exit 1
             fi
@@ -108,11 +108,11 @@ jobs:
           echo "Регистрация zap_scanner..."
           curl -X POST http://localhost:8081/api/auth/register \
             -H "Content-Type: application/json" \
-            -d '{"username":"zap_scanner","password":"ZapPass123!","role":"ADMIN"}' || true
+            -d '{"username":"zap_scanner","password":"Password123!","role":"ADMIN"}' || true
 
           LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8081/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"username":"zap_scanner","password":"ZapPass123!"}')
+            -d '{"username":"zap_scanner","password":"Password123!"}')
 
           TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
 
