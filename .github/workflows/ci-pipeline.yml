@@ -45,13 +45,14 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Setup Snyk CLI
+        uses: snyk/actions/setup@master
+
       - name: SCA - Snyk Open Source Analysis
-        uses: snyk/actions/gradle@master
-        continue-on-error: true
+        run: snyk test --all-sub-projects --severity-threshold=high --json-file-output=snyk.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --all-sub-projects --severity-threshold=high --json-file-output=snyk.json
+        continue-on-error: true
 
       - name: Generate Snyk HTML Report
         run: |
@@ -165,6 +166,6 @@ jobs:
         with:
           name: security-reports
           path: |
-            dependency-check-report.html
+            snyk-report.html
             report-auth-full.html
             report-employee-full.html
