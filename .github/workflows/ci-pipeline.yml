@@ -43,7 +43,9 @@ jobs:
         continue-on-error: true
 
       - name: SCA - Dependency Check
-        run: ./gradlew dependencyCheckAnalyze --continue
+        run: |
+          chmod +x ./gradlew
+          ./gradlew dependencyCheckAnalyze --continue
         continue-on-error: true
 
       - name: Start services (Kafka, Postgres DB employee)
